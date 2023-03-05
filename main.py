@@ -378,7 +378,7 @@ def notificacoes():
         pagamento_concluido = False
 
     # Renderiza o template HTML e passa as informações para ele
-    return render_template('notificacoes.html', pagamento_concluido=pagamento_concluido)
+    return render_template('notificacao.html', pagamento_concluido=pagamento_concluido)
 
 
 @app.route('/resultado')
