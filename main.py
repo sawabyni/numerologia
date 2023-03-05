@@ -331,7 +331,7 @@ def pix():
             }
         },
         "notification_urls": [
-            "https://meusite.com/notificacoes"
+            "https://web-production-1aba3.up.railway.app/notificacao.html"
         ]
     }
 
@@ -348,7 +348,7 @@ def pix():
 token = f"{token} "
 email = f"{e_aut} "
 @app.route('/notificacao', methods=['POST'])
-def notificacoes():
+def notificacao():
     # Recebe a notificação enviada pelo PagSeguro por meio de uma solicitação POST
     xml_notification = request.data.decode('utf-8')
 
