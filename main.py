@@ -241,7 +241,7 @@ def pagseguro():
             }
         },
         "notification_urls": [
-            "https://meusite.com/notificacoes"
+            "https://web-production-1aba3.up.railway.app/notificacao.html"
         ],
         "charges": [
             {
@@ -271,7 +271,7 @@ def pagseguro():
     response = requests.post('https://sandbox.api.pagseguro.com/orders', headers=headers, json=payload)
 
     if response.ok:
-        return redirect(url_for('resultado'))
+        return redirect(url_for('notificacao'))
 
         # se o pagamento nao foi precessado com sucesso, retorna JSON response
     return jsonify(response.json())
