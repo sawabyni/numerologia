@@ -271,7 +271,7 @@ def pagseguro():
     response = requests.post('https://sandbox.api.pagseguro.com/orders', headers=headers, json=payload)
 
     if response.ok:
-        return redirect(url_for('notificacoes'))
+        return redirect(url_for('notificacao'))
 
         # se o pagamento nao foi precessado com sucesso, retorna JSON response
     return jsonify(response.json())
@@ -344,10 +344,10 @@ def pix():
         return "Erro ao processar a solicitação."
 
 
-#Recebe as notificacoes de pagamento
+#Recebe as notificacao de pagamento
 token = f"{token} "
 email = f"{e_aut} "
-@app.route('/notificacoes', methods=['POST'])
+@app.route('/notificao', methods=['POST'])
 def notificacoes():
     # Recebe a notificação enviada pelo PagSeguro por meio de uma solicitação POST
     xml_notification = request.data.decode('utf-8')
@@ -370,7 +370,6 @@ def notificacoes():
     # Analisa o XML de resposta e extrai as informações necessárias
     root = ET.fromstring(xml_response)
     status = root.find('status').text
-    reference = root.find('reference').text
 
     if status == '3':  # Transação concluída
         pagamento_concluido = True
