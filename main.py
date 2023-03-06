@@ -345,40 +345,43 @@ def pix():
 
 
 #Recebe as notificacao de pagamento
+
+@app.route('/notificacao')
+# Configurar as credenciais de API do PagSeguro
 token = f"{token} "
 email = f"{e_aut} "
-@app.route('/notificacao', methods=['POST'])
-def notificacao():
-    # Recebe a notificação enviada pelo PagSeguro por meio de uma solicitação POST
-    xml_notification = request.data.decode('utf-8')
 
-    # Analisa o XML de notificação e extrai o código de notificação
-    root = ET.fromstring(xml_notification)
-    codigo_notificacao = root.find('notificationCode').text
+# Verificar o status do pagamento
+def verificar_pagamento(id_transacao):
+    url = 'https://ws.pagseguro.uol.com.br/v2/transactions'
+    data = {
+        'email': email,
+        'token': token,
+        'code': "00001",
+    }
+    response = requests.post(url, data=data)
+    if response.status_code == 200:
+        xml = response.content.decode('iso-8859-1')
+        status = xml.split('<status>')[1].split('</status>')[0]
+        if status == '3': # status 3 significa que o pagamento foi aprovado
+            return True
+    return False
 
-    # Parâmetros do POST de consulta da transação
-    params = {'token': token, 'email': email, 'notificationCode': codigo_notificacao}
 
-    # Codifica os parâmetros do POST em formato de consulta
-    query_string = urllib.parse.urlencode(params).encode('utf-8')
+# Rota para a página de resultados
+@app.route('/notificacao/<id_transacao>')
+def mostrar_resultado(id_transacao):
+    # Verificar se a compra foi paga antes de exibir a página de resultados
+    if verificar_pagamento(id_transacao):
+        # Obter as informações relevantes sobre a transação (por exemplo, o valor)
+        # ...
+        valor = 99.99 # Substitua com o valor real da transação
 
-    # Faz a solicitação de POST e lê a resposta XML
-    url = 'https://web-production-1aba3.up.railway.app/notificacao.html/00001?email=sawabyni%40hotmail.com&token=5C40DB411C9B4757A2867EEBAB3182F3'
-    response = urllib.request.urlopen(url, query_string)
-    xml_response = response.read().decode('utf-8')
-
-    # Analisa o XML de resposta e extrai as informações necessárias
-    root = ET.fromstring(xml_response)
-    status = root.find('status').text
-
-    if status == '3':  # Transação concluída
-        pagamento_concluido = True
+        # Renderizar o template HTML com as informações relevantes
+        return render_template('notificacao.html', id_transacao=id_transacao, valor=valor)
     else:
-        pagamento_concluido = False
-
-    # Renderiza o template HTML e passa as informações para ele
-    return render_template('notificacao.html', pagamento_concluido=pagamento_concluido)
-
+        # Redirecionar o usuário para uma página de erro ou exibir uma mensagem de erro na mesma página
+        # ...
 
 @app.route('/resultado')
 def resultado():
