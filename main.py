@@ -345,17 +345,40 @@ def pix():
 
 
 #Recebe as notificacao de pagamento
-url = "https://ws.pagseguro.uol.com.br/v3/transactions/notifications/notificationCode?email=sawabyni%40hotmail.com&token=5C40DB411C9B4757A2867EEBAB3182F3"
+token = f"{token} "
+email = f"{e_aut} "
+@app.route('/notificacao', methods=['POST'])
+def notificacao():
+    # Recebe a notificação enviada pelo PagSeguro por meio de uma solicitação POST
+    xml_notification = request.data.decode('utf-8')
 
-payload = {"notificationCode": "00001"}
-headers = {
-    "accept": "application/xml",
-    "content-type": "application/json"
-}
+    # Analisa o XML de notificação e extrai o código de notificação
+    root = ET.fromstring(xml_notification)
+    codigo_notificacao = root.find('notificationCode').text
 
-response = requests.get(url, json=payload, headers=headers)
+    # Parâmetros do POST de consulta da transação
+    params = {'token': token, 'email': email, 'notificationCode': codigo_notificacao}
 
-print(response.text)
+    # Codifica os parâmetros do POST em formato de consulta
+    query_string = urllib.parse.urlencode(params).encode('utf-8')
+
+    # Faz a solicitação de POST e lê a resposta XML
+    url = 'https://ws.pagseguro.uol.com.br/v3/transactions/notifications/00001?email=sawabyni%40hotmail.com&token=5C40DB411C9B4757A2867EEBAB3182F3'
+    response = urllib.request.urlopen(url, query_string)
+    xml_response = response.read().decode('utf-8')
+
+    # Analisa o XML de resposta e extrai as informações necessárias
+    root = ET.fromstring(xml_response)
+    status = root.find('status').text
+
+    if status == '3':  # Transação concluída
+        pagamento_concluido = True
+    else:
+        pagamento_concluido = False
+
+    # Renderiza o template HTML e passa as informações para ele
+    return render_template('notificacao.html', pagamento_concluido=pagamento_concluido)
+
 
 @app.route('/resultado')
 def resultado():
