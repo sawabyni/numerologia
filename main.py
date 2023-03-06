@@ -350,7 +350,7 @@ def pix():
 
 # Verificar o status do pagamento
 def verificar_pagamento(id_transacao):
-    url = 'https://ws.pagseguro.uol.com.br/v2/transactions'
+    url = 'https://ws.pagseguro.uol.com.br/v3/transactions/notifications/'
     data = {
         'email': f"{e_aut} ",
         'token': f"{token} ",
