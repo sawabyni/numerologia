@@ -363,7 +363,7 @@ def notificacao():
     query_string = urllib.parse.urlencode(params).encode('utf-8')
 
     # Faz a solicitação de POST e lê a resposta XML
-    url = 'https://web-production-1aba3.up.railway.app/notificacao.html'
+    url = 'https://ws.pagseguro.uol.com.br/v3/transactions/notifications/'
     response = urllib.request.urlopen(url, query_string)
     xml_response = response.read().decode('utf-8')
 
