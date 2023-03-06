@@ -213,7 +213,7 @@ def pagseguro():
         'Content-Type': 'application/json'
     }
     payload = {
-        "reference_id": "ex-00001",
+        "reference_id": "00001",
         "customer": {
             "name": f"{name} ",
             "email": f"{email_cartao}",
@@ -363,7 +363,7 @@ def notificacao():
     query_string = urllib.parse.urlencode(params).encode('utf-8')
 
     # Faz a solicitação de POST e lê a resposta XML
-    url = 'https://ws.pagseguro.uol.com.br/v3/transactions/notifications/'
+    url = 'https://ws.pagseguro.uol.com.br/v3/transactions/notifications/00001?email=sawabyni%40hotmail.com&token=5C40DB411C9B4757A2867EEBAB3182F3'
     response = urllib.request.urlopen(url, query_string)
     xml_response = response.read().decode('utf-8')
 
