@@ -347,16 +347,13 @@ def pix():
 #Recebe as notificacao de pagamento
 
 @app.route('/notificacao')
-# Configurar as credenciais de API do PagSeguro
-token = f"{token} "
-email = f"{e_aut} "
 
 # Verificar o status do pagamento
 def verificar_pagamento(id_transacao):
     url = 'https://ws.pagseguro.uol.com.br/v2/transactions'
     data = {
-        'email': email,
-        'token': token,
+        'email': f"{e_aut} ",
+        'token': f"{token} ",
         'code': "00001",
     }
     response = requests.post(url, data=data)
@@ -382,6 +379,7 @@ def mostrar_resultado(id_transacao):
     else:
         # Redirecionar o usuário para uma página de erro ou exibir uma mensagem de erro na mesma página
         # ...
+        ""
 
 @app.route('/resultado')
 def resultado():
