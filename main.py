@@ -347,7 +347,7 @@ def pix():
 #Recebe as notificacao de pagamento
 token = f"{token} "
 email = f"{e_aut} "
-@app.route('/notificacao', methods=['GET'])
+@app.route('/notificacao', methods=['POST'])
 def notificacao():
     # Recebe a notificação enviada pelo PagSeguro por meio de uma solicitação POST
     xml_notification = request.data.decode('utf-8')
