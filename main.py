@@ -348,22 +348,20 @@ def pix():
 
 @app.route('/notificacao')
 
+# Configurar as credenciais de API do PagSeguro
+
+
+
 # Verificar o status do pagamento
 def verificar_pagamento(id_transacao):
-    url = 'https://ws.pagseguro.uol.com.br/v3/transactions/notifications/'
-    data = {
-        'email': f"{e_aut} ",
-        'token': f"{token} ",
-        'code': "00001",
-    }
-    response = requests.post(url, data=data)
+    url = f"https://ws.pagseguro.uol.com.br/v3/transactions/00001?email={email}&token={token}"
+    response = requests.get(url)
     if response.status_code == 200:
         xml = response.content.decode('iso-8859-1')
         status = xml.split('<status>')[1].split('</status>')[0]
         if status == '3': # status 3 significa que o pagamento foi aprovado
             return True
     return False
-
 
 # Rota para a página de resultados
 @app.route('/notificacao/<id_transacao>')
@@ -374,12 +372,23 @@ def mostrar_resultado(id_transacao):
         # ...
         valor = 99.99 # Substitua com o valor real da transação
 
-        # Renderizar o template HTML com as informações relevantes
-        return render_template('notificacao.html', id_transacao=id_transacao, valor=valor)
+        # Fazer a requisição para obter os detalhes da transação
+        url = f"https://ws.pagseguro.uol.com.br/v3/transactions/notifications/{id_transacao}?email={email}&token={token}"
+        response = requests.get(url)
+        if response.status_code == 200:
+            xml = response.content.decode('iso-8859-1')
+            # Extrair as informações relevantes da resposta XML
+            # ...
+            return render_template('notificacao.html', id_transacao=id_transacao, valor=valor, xml=xml)
+        else:
+            # Redirecionar o usuário para uma página de erro ou exibir uma mensagem de erro na mesma página
+            # ...
+            return render_template('notificacao.html', id_transacao=id_transacao, valor=valor)
     else:
         # Redirecionar o usuário para uma página de erro ou exibir uma mensagem de erro na mesma página
         # ...
         ""
+
 
 @app.route('/resultado')
 def resultado():
