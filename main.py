@@ -307,7 +307,7 @@ def pagseguro():
     response = requests.post('https://sandbox.api.pagseguro.com/orders', headers=headers, json=payload)
 
     if response.ok:
-        return redirect(url_for('notificacao'))
+        return redirect(url_for('resultado'))
 
         # se o pagamento nao foi precessado com sucesso, retorna JSON response
     return jsonify(response.json())
