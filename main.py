@@ -6,6 +6,10 @@ from io import BytesIO
 import xml.etree.ElementTree as ET
 import urllib.request
 import urllib.parse
+import mysql.connector
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
+import random
 
 app = Flask(__name__)  # Cria um site vazio
 
@@ -196,27 +200,58 @@ def conf():
 
 url, token, urlpix, e_aut = conf()
 
+# Funcao de pegar a data da geracao do pedido
+def data_pedido():
+    now = datetime.now()
+    current_time = now.strftime("%H:%M:%S")
+    current_date = now.strftime("%Y-%m-%d")
+    next_date = (datetime.strptime(current_date, '%Y-%m-%d') + relativedelta(months=1)).strftime('%Y-%m-%d')
+    d_s_traco = next_date.replace('-', '')
+    limite_d_pix = (next_date + "T" + current_time + "-03:00")  # variavel contendo limite de 1 mes para ser pago
+    return current_time, current_date, next_date,limite_d_pix, d_s_traco
+
+
+
+
+#gerando numero de pedido (data do pedido e numero random)
+def gerar_pedido():
+    _, _, _, _, d_s_traco = data_pedido()
+    numero_pedido = str(random.randint(10000000, 99999999))
+    numero_pedido = (d_s_traco + numero_pedido)
+    return numero_pedido
+
+
+
 # campos a serem enviados no cartao de credito
 @app.route('/cartao', methods=['POST'])
 def pagseguro():
 
     name = request.form['name']
-    email_cartao = request.form['email']
+    emailpg = request.form['email']
     cpf = request.form['cpf']
     ncard = request.form['ncard']
     exp_month = request.form['exp_month']
     exp_year = request.form['exp_year']
     s_code = request.form['s_code']
 
+    numero_pedido = gerar_pedido()
+    current_time, current_date, _, _, _ = data_pedido()
+    tipo_pg = "2"
+    status = "1"
+    next_date = "2000-01-01"
+    conecta_db()
+    sel_pg(conn)
+    insere_pg(conn, numero_pedido, tipo_pg, status, current_date, current_time,next_date, name, emailpg)
+
     headers = {
         'Authorization': f"{token} ",
         'Content-Type': 'application/json'
     }
     payload = {
-        "reference_id": "00001",
+        "reference_id": f"{numero_pedido}",
         "customer": {
             "name": f"{name} ",
-            "email": f"{email_cartao}",
+            "email": f"{emailpg}",
             "tax_id": f"{cpf}",
 
         },
@@ -268,6 +303,7 @@ def pagseguro():
             }
         ]
     }
+    desconecta_db(conn)
     response = requests.post('https://sandbox.api.pagseguro.com/orders', headers=headers, json=payload)
 
     if response.ok:
@@ -279,8 +315,16 @@ def pagseguro():
 # campos a serem enviados no pix
 @app.route('/pix', methods=['POST'])
 def pix():
+    numero_pedido = gerar_pedido()
+    current_time, current_date, next_date,limite_d_pix, _ = data_pedido()
     url = f"{urlpix}"
-    emailpix = request.form['epix']
+    emailpg = request.form['epix']
+    tipo_pg = "1"
+    status = "1"
+    name =""
+    conecta_db()
+    sel_pg(conn)
+    insere_pg(conn, numero_pedido, tipo_pg,status, current_date,current_time,next_date,name,emailpg)
 
     headers = {
         "Content-Type": "application/json",
@@ -289,19 +333,12 @@ def pix():
     }
 
     payload = {
-        "reference_id": "ex-00001",
+        "reference_id": f"{numero_pedido}",
         "customer": {
             "name": "Jose da Silva",
-            "email": f"{emailpix}",
+            "email": f"{emailpg}",
             "tax_id": "12345678909",
-            "phones": [
-                {
-                    "country": "55",
-                    "area": "11",
-                    "number": "999999999",
-                    "type": "MOBILE"
-                }
-            ]
+
         },
         "items": [
             {
@@ -315,7 +352,7 @@ def pix():
                 "amount": {
                     "value": 5000000
                 },
-                "expiration_date": "2023-03-06T20:15:59-03:00"
+                "expiration_date": f"{limite_d_pix}"
             }
         ],
         "shipping": {
@@ -334,6 +371,7 @@ def pix():
             "https://web-production-1aba3.up.railway.app/notificacao.html"
         ]
     }
+    desconecta_db(conn)
 
     response = requests.post(url, headers=headers, json=payload)
     if response.ok:
@@ -345,49 +383,39 @@ def pix():
 
 
 #Recebe as notificacao de pagamento
+token = f"{token} "
+email = f"{e_aut} "
+@app.route('/notificacao', methods=['POST'])
+def notificacao():
+    # Recebe a notificação enviada pelo PagSeguro por meio de uma solicitação POST
+    xml_notification = request.data.decode('utf-8')
 
-@app.route('/notificacao')
+    # Analisa o XML de notificação e extrai o código de notificação
+    root = ET.fromstring(xml_notification)
+    codigo_notificacao = root.find('notificationCode').text
 
-# Configurar as credenciais de API do PagSeguro
+    # Parâmetros do POST de consulta da transação
+    params = {'token': token, 'email': email, 'notificationCode': codigo_notificacao}
 
+    # Codifica os parâmetros do POST em formato de consulta
+    query_string = urllib.parse.urlencode(params).encode('utf-8')
 
+    # Faz a solicitação de POST e lê a resposta XML
+    url = 'https://web-production-1aba3.up.railway.app/notificacao.html'
+    response = urllib.request.urlopen(url, query_string)
+    xml_response = response.read().decode('utf-8')
 
-# Verificar o status do pagamento
-def verificar_pagamento(id_transacao):
-    url = f"https://ws.pagseguro.uol.com.br/v3/transactions/00001?email={email}&token={token}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        xml = response.content.decode('iso-8859-1')
-        status = xml.split('<status>')[1].split('</status>')[0]
-        if status == '3': # status 3 significa que o pagamento foi aprovado
-            return True
-    return False
+    # Analisa o XML de resposta e extrai as informações necessárias
+    root = ET.fromstring(xml_response)
+    status = root.find('status').text
 
-# Rota para a página de resultados
-@app.route('/notificacao/<id_transacao>')
-def mostrar_resultado(id_transacao):
-    # Verificar se a compra foi paga antes de exibir a página de resultados
-    if verificar_pagamento(id_transacao):
-        # Obter as informações relevantes sobre a transação (por exemplo, o valor)
-        # ...
-        valor = 99.99 # Substitua com o valor real da transação
-
-        # Fazer a requisição para obter os detalhes da transação
-        url = f"https://ws.pagseguro.uol.com.br/v3/transactions/notifications/{id_transacao}?email={email}&token={token}"
-        response = requests.get(url)
-        if response.status_code == 200:
-            xml = response.content.decode('iso-8859-1')
-            # Extrair as informações relevantes da resposta XML
-            # ...
-            return render_template('notificacao.html', id_transacao=id_transacao, valor=valor, xml=xml)
-        else:
-            # Redirecionar o usuário para uma página de erro ou exibir uma mensagem de erro na mesma página
-            # ...
-            return render_template('notificacao.html', id_transacao=id_transacao, valor=valor)
+    if status == '3':  # Transação concluída
+        pagamento_concluido = True
     else:
-        # Redirecionar o usuário para uma página de erro ou exibir uma mensagem de erro na mesma página
-        # ...
-        ""
+        pagamento_concluido = False
+
+    # Renderiza o template HTML e passa as informações para ele
+    return render_template('notificacao.html', pagamento_concluido=pagamento_concluido)
 
 
 @app.route('/resultado')
@@ -396,6 +424,45 @@ def resultado():
     value = session.get('value', None)
     significado = session.get('significado', None)
     return render_template('resultado.html', name=name, value=value, significado=significado)
+
+# Conecta ao DB
+conn = None
+def conecta_db():
+    global conn
+    print(conn)
+    if (not conn) or (not conn.is_connected()):
+        host = "containers-us-west-60.railway.app"
+        port = 6809
+        user = "root"
+        password = "sK8r1pjr5tJEfU9Y6K9w"
+        database = "railway"
+        conn = mysql.connector.connect(
+            host=host,
+            port=port,
+            user=user,
+            password=password,
+            database=database
+        )
+    return conn
+
+#Seleciona a tabela pagamentos no DB
+def sel_pg(conn):
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM pagamentos")
+    rows = cur.fetchall()
+    return rows
+
+# Inserindo dados de pagamento na tabela do DB
+def insere_pg(conn, numero_pedido,tipo_pg,status ,current_date,current_time,next_date,name,emailpg):
+    cur = conn.cursor()
+    cur.execute("INSERT INTO pagamentos (referencia,tipo_pg,status,data_compra,hora_compra,data_modificacao,data_exp, nome, email) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)", (numero_pedido,tipo_pg,status,current_date,current_time,current_date,next_date,name,emailpg))
+
+    conn.commit()
+
+# Desconecta do DB
+def desconecta_db(conn):
+    conn.close()
 
 if __name__ == "__main__":
     app.run(debug=True)  # coloca o site no ar

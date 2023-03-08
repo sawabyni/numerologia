@@ -8,7 +8,7 @@ function limparQrcode() {
     document.getElementById("qrcode").innerHTML = "";
     }
 
-const gerarQrcodeBtn = document.getElementById("gerar-qrcode");
+const gerarQrcodeBtn = document.getElementById("gerar");
 const emailInput = document.getElementById("epix");
 
 gerarQrcodeBtn.addEventListener("click", function(event) {
