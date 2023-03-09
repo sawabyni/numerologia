@@ -308,6 +308,7 @@ def pagseguro():
         json_response = response.json()
         id_order = json_response['id']
         referencia = json_response['reference_id']
+        id_order = id_order.replace("ORDE_","")
 
         # inserir id_ordem na tabela de pagamentos
         conecta_db()
@@ -394,17 +395,17 @@ def pix():
 
 
 
-@app.route('/notificacao', methods=['POST'])
-def notificacao():
+@app.route('/notifica', methods=['POST'])
+def notifica():
     # Recebe a notificação enviada pelo PagSeguro por meio de uma solicitação POST
     xml_notification = request.data.decode('utf-8')
 
     # Analisa o XML de notificação e extrai o código de notificação
     root = ET.fromstring(xml_notification)
-    codigo_notificacao = root.find('notificationCode').text
+    id_order = root.find('Code').text
 
     # Parâmetros do POST de consulta da transação
-    params = {'token': f"{token}", 'email': f"{e_aut} ", 'notificationCode': codigo_notificacao}
+    params = {'token': f"{token}", 'email': f"{e_aut} ", 'Code': id_order}
 
     # Codifica os parâmetros do POST em formato de consulta
     query_string = urllib.parse.urlencode(params).encode('utf-8')
@@ -420,28 +421,14 @@ def notificacao():
 
     if status == '3':  # Transação concluída
         pagamento_concluido = True
-        # Atualiza o status do pagamento no banco de dados
-        conecta_db()
-        sel_pg(conn)
-        cur = conn.cursor()
-        cur.execute('UPDATE pagamentos SET status = %s WHERE codigo_notificacao = %s',
-                       ('3', codigo_notificacao))
-        conn.commit()
-        desconecta_db(conn)
+
 
     else:
-        # Atualiza o status do pagamento no banco de dados
-        conecta_db()
-        sel_pg(conn)
-        cur = conn.cursor()
-        cur.execute('UPDATE pagamentos SET status = %s WHERE codigo_notificacao = %s',
-                    (status, codigo_notificacao))
-        conn.commit()
-        desconecta_db(conn)
+
         pagamento_concluido = False
 
     # Renderiza o template HTML e passa as informações para ele
-    return render_template('notificacao.html', pagamento_concluido=pagamento_concluido)
+    return render_template('notificacao.html', pagamento_concluido=pagamento_concluido , status=status)
 
 
 @app.route('/resultado')
