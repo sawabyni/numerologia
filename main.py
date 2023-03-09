@@ -233,15 +233,12 @@ def pagseguro():
     exp_month = request.form['exp_month']
     exp_year = request.form['exp_year']
     s_code = request.form['s_code']
-
     numero_pedido = gerar_pedido()
     current_time, current_date, _, _, _ = data_pedido()
     tipo_pg = "2"
     status = "1"
     next_date = "2000-01-01"
-    conecta_db()
-    sel_pg(conn)
-    insere_pg(conn, numero_pedido, tipo_pg, status, current_date, current_time,next_date, name, emailpg)
+
 
     headers = {
         'Authorization': f"{token} ",
@@ -303,10 +300,24 @@ def pagseguro():
             }
         ]
     }
-    desconecta_db(conn)
+
     response = requests.post('https://sandbox.api.pagseguro.com/orders', headers=headers, json=payload)
 
     if response.ok:
+        print("aqui")
+        json_response = response.json()
+        id_order = json_response['id']
+        referencia = json_response['reference_id']
+
+        # inserir id_ordem na tabela de pagamentos
+        conecta_db()
+        sel_pg(conn)
+        insere_pg(conn, numero_pedido, tipo_pg, status, current_date, current_time, next_date, name, emailpg)
+        cur = conn.cursor()
+        cur.execute('UPDATE pagamentos SET id_order = %s WHERE referencia = %s', (id_order, referencia))
+        conn.commit()
+        desconecta_db(conn)
+
         return render_template('notifica.html', json=response.json())
 
         # se o pagamento nao foi precessado com sucesso, retorna JSON response
