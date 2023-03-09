@@ -276,7 +276,7 @@ def pagseguro():
             }
         },
         "notification_urls": [
-            "https://numerologia.up.railway.app"
+            "https://numerologia.up.railway.app/notificacao.html"
         ],
         "charges": [
             {
@@ -307,7 +307,7 @@ def pagseguro():
     response = requests.post('https://sandbox.api.pagseguro.com/orders', headers=headers, json=payload)
 
     if response.ok:
-        return redirect(url_for('resultado'))
+        return redirect(url_for('resultado', json=json))
 
         # se o pagamento nao foi precessado com sucesso, retorna JSON response
     return jsonify(response.json())
@@ -368,7 +368,7 @@ def pix():
             }
         },
         "notification_urls": [
-            "https://numerologia.up.railway.app"
+            "https://numerologia.up.railway.app/notificacao.html"
         ]
     }
     desconecta_db(conn)
@@ -383,7 +383,7 @@ def pix():
 
 
 
-@app.route('/', methods=['POST'])
+@app.route('/notificacao', methods=['POST'])
 def notificacao():
     # Recebe a notificação enviada pelo PagSeguro por meio de uma solicitação POST
     xml_notification = request.data.decode('utf-8')
