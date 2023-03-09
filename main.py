@@ -411,7 +411,24 @@ def notificacao():
 
     if status == '3':  # Transação concluída
         pagamento_concluido = True
+        # Atualiza o status do pagamento no banco de dados
+        conecta_db()
+        sel_pg(conn)
+        cur = conn.cursor()
+        cur.execute('UPDATE pagamentos SET status = %s WHERE codigo_notificacao = %s',
+                       ('3', codigo_notificacao))
+        conn.commit()
+        desconecta_db(conn)
+
     else:
+        # Atualiza o status do pagamento no banco de dados
+        conecta_db()
+        sel_pg(conn)
+        cur = conn.cursor()
+        cur.execute('UPDATE pagamentos SET status = %s WHERE codigo_notificacao = %s',
+                    (status, codigo_notificacao))
+        conn.commit()
+        desconecta_db(conn)
         pagamento_concluido = False
 
     # Renderiza o template HTML e passa as informações para ele
