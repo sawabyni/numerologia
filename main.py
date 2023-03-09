@@ -395,17 +395,17 @@ def pix():
 
 
 
-@app.route('/notifica', methods=['POST'])
-def notifica():
+@app.route('/notificacao', methods=['POST'])
+def notificacao():
     # Recebe a notificação enviada pelo PagSeguro por meio de uma solicitação POST
     xml_notification = request.data.decode('utf-8')
 
     # Analisa o XML de notificação e extrai o código de notificação
     root = ET.fromstring(xml_notification)
-    id_order = root.find('Code').text
+    codigo_notificacao = root.find('notificationCode').text
 
     # Parâmetros do POST de consulta da transação
-    params = {'token': f"{token}", 'email': f"{e_aut} ", 'Code': id_order}
+    params = {'token': f"{token}", 'email': f"{e_aut} ", 'notificationCode': codigo_notificacao}
 
     # Codifica os parâmetros do POST em formato de consulta
     query_string = urllib.parse.urlencode(params).encode('utf-8')
@@ -422,13 +422,12 @@ def notifica():
     if status == '3':  # Transação concluída
         pagamento_concluido = True
 
-
     else:
 
         pagamento_concluido = False
 
     # Renderiza o template HTML e passa as informações para ele
-    return render_template('notificacao.html', pagamento_concluido=pagamento_concluido , status=status)
+    return render_template('notificacao.html', pagamento_concluido=pagamento_concluido)
 
 
 @app.route('/resultado')
