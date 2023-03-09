@@ -1,14 +1,15 @@
 <!DOCTYPE html>
-<html lang="pt">
-<head>
-    <meta charset="UTF-8">
-    <title>notificacao de pagamento</title>
-</head>
-<body>
+<html>
+  <head>
+    <title>Notificação PagSeguro</title>
+  </head>
+  <body>
     {% if pagamento_concluido %}
-        <h1>Pagamento concluído com sucesso!</h1>
+      <h1>Pagamento Concluído!</h1>
+      <p>O pagamento foi concluído com sucesso.</p>
     {% else %}
-        <h1>Pagamento não concluído.</h1>
+      <h1>Pagamento Pendente!</h1>
+      <p>O pagamento está pendente de confirmação.</p>
     {% endif %}
-</body>
+  </body>
 </html>
