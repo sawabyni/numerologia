@@ -383,7 +383,7 @@ def pix():
 
 
 
-@app.route('/notificacao', methods=['POST'])
+@app.route('/', methods=['POST'])
 def notificacao():
     # Recebe a notificação enviada pelo PagSeguro por meio de uma solicitação POST
     xml_notification = request.data.decode('utf-8')
