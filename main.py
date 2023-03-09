@@ -276,7 +276,7 @@ def pagseguro():
             }
         },
         "notification_urls": [
-            "https://numerologia.up.railway.app/notificacao.html"
+            "https://numerologia.up.railway.app"
         ],
         "charges": [
             {
@@ -368,7 +368,7 @@ def pix():
             }
         },
         "notification_urls": [
-            "https://numerologia.up.railway.app/notificacao.html"
+            "https://numerologia.up.railway.app"
         ]
     }
     desconecta_db(conn)
