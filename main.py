@@ -276,7 +276,7 @@ def pagseguro():
             }
         },
         "notification_urls": [
-            "https://web-production-1aba3.up.railway.app/notificacao.html"
+            "https://ws.sandbox.pagseguro.uol.com.br/v3/transactions/notifications/"
         ],
         "charges": [
             {
@@ -368,7 +368,7 @@ def pix():
             }
         },
         "notification_urls": [
-            "https://web-production-1aba3.up.railway.app/notificacao.html"
+            "https://ws.sandbox.pagseguro.uol.com.br/v3/transactions/notifications/"
         ]
     }
     desconecta_db(conn)
@@ -401,7 +401,7 @@ def notificacao():
     query_string = urllib.parse.urlencode(params).encode('utf-8')
 
     # Faz a solicitação de POST e lê a resposta XML
-    url = 'https://web-production-1aba3.up.railway.app/notificacao.html'
+    url = 'https://ws.sandbox.pagseguro.uol.com.br/v3/transactions/notifications/'
     response = urllib.request.urlopen(url, query_string)
     xml_response = response.read().decode('utf-8')
 
