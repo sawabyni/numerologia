@@ -382,9 +382,7 @@ def pix():
         return "Erro ao processar a solicitação."
 
 
-#Recebe as notificacao de pagamento
-token = f"{token} "
-email = f"{e_aut} "
+
 @app.route('/notificacao', methods=['POST'])
 def notificacao():
     # Recebe a notificação enviada pelo PagSeguro por meio de uma solicitação POST
@@ -395,7 +393,7 @@ def notificacao():
     codigo_notificacao = root.find('notificationCode').text
 
     # Parâmetros do POST de consulta da transação
-    params = {'token': token, 'email': email, 'notificationCode': codigo_notificacao}
+    params = {'token': f"{token}", 'email': f"{e_aut} ", 'notificationCode': codigo_notificacao}
 
     # Codifica os parâmetros do POST em formato de consulta
     query_string = urllib.parse.urlencode(params).encode('utf-8')
