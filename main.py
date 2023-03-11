@@ -3,9 +3,6 @@ from flask import Flask, render_template, request, send_file, make_response, jso
 import requests
 from reportlab.pdfgen import canvas
 from io import BytesIO
-import xml.etree.ElementTree as ET
-import urllib.request
-import urllib.parse
 import mysql.connector
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -236,7 +233,7 @@ def pagseguro():
     numero_pedido = gerar_pedido()
     current_time, current_date, _, _, _ = data_pedido()
     tipo_pg = "2"
-    status = "1"
+    status = "0"
     next_date = "2000-01-01"
 
 
@@ -273,7 +270,7 @@ def pagseguro():
             }
         },
         "notification_urls": [
-            "https://numerologia.up.railway.app/notifica.html"
+            "https://8d7e-2804-14d-5c59-5ae9-5826-9ebc-92a5-5873.sa.ngrok.io/notificacao"
         ],
         "charges": [
             {
@@ -304,7 +301,6 @@ def pagseguro():
     response = requests.post('https://sandbox.api.pagseguro.com/orders', headers=headers, json=payload)
 
     if response.ok:
-        print("aqui")
         json_response = response.json()
         id_order = json_response['id']
         referencia = json_response['reference_id']
@@ -397,38 +393,47 @@ def pix():
 
 @app.route('/notificacao', methods=['POST'])
 def notificacao():
-    # Recebe a notificação enviada pelo PagSeguro por meio de uma solicitação POST
-    xml_notification = request.data.decode('utf-8')
+    recjson = json.loads(request.data)
+    id_order = recjson["id"]
+    status = recjson["charges"][0]["status"]
+    conecta_db()
+    sel_pg(conn)
 
-    # Analisa o XML de notificação e extrai o código de notificação
-    root = ET.fromstring(xml_notification)
-    codigo_notificacao = root.find('notificationCode').text
+    if status == "AUTHORIZED":
+        status = "1"
+        cur = conn.cursor()
+        cur.execute('UPDATE pagamentos SET status = %s WHERE id_order = %s', (status, id_order))
+        conn.commit()
+        desconecta_db(conn)
 
-    # Parâmetros do POST de consulta da transação
-    params = {'token': f"{token}", 'email': f"{e_aut} ", 'notificationCode': codigo_notificacao}
+    elif status == "PAID":
+        status = "2"
+        cur = conn.cursor()
+        cur.execute('UPDATE pagamentos SET status = %s WHERE id_order = %s', (status, id_order))
+        conn.commit()
+        desconecta_db(conn)
+        return 200
 
-    # Codifica os parâmetros do POST em formato de consulta
-    query_string = urllib.parse.urlencode(params).encode('utf-8')
+    elif status == "IN_ANALYSIS":
+        status = "3"
+        cur = conn.cursor()
+        cur.execute('UPDATE pagamentos SET status = %s WHERE id_order = %s', (status, id_order))
+        conn.commit()
+        desconecta_db(conn)
 
-    # Faz a solicitação de POST e lê a resposta XML
-    url = 'https://ws.sandbox.pagseguro.uol.com.br/v3/transactions/notifications/'
-    response = urllib.request.urlopen(url, query_string)
-    xml_response = response.read().decode('utf-8')
+    elif status == "DECLINED":
+        status = "4"
+        cur = conn.cursor()
+        cur.execute('UPDATE pagamentos SET status = %s WHERE id_order = %s', (status, id_order))
+        conn.commit()
+        desconecta_db(conn)
 
-    # Analisa o XML de resposta e extrai as informações necessárias
-    root = ET.fromstring(xml_response)
-    status = root.find('status').text
-
-    if status == '3':  # Transação concluída
-        pagamento_concluido = True
-
-    else:
-
-        pagamento_concluido = False
-
-    # Renderiza o template HTML e passa as informações para ele
-    return render_template('notificacao.html', pagamento_concluido=pagamento_concluido)
-
+    elif status == "CANCELED":
+        status = "5"
+        cur = conn.cursor()
+        cur.execute('UPDATE pagamentos SET status = %s WHERE id_order = %s', (status, id_order))
+        conn.commit()
+        desconecta_db(conn)
 
 @app.route('/resultado')
 def resultado():
@@ -441,7 +446,6 @@ def resultado():
 conn = None
 def conecta_db():
     global conn
-    print(conn)
     if (not conn) or (not conn.is_connected()):
         host = "containers-us-west-60.railway.app"
         port = 6809
