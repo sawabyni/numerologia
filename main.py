@@ -234,8 +234,6 @@ def pagseguro():
     current_time, current_date, _, _, _ = data_pedido()
     tipo_pg = "2"
     status = "0"
-    next_date = "2000-01-01"
-
 
     headers = {
         'Authorization': f"{token} ",
@@ -270,7 +268,7 @@ def pagseguro():
             }
         },
         "notification_urls": [
-            "https://numerologia.up.railway.app/notificacao"
+            "https://8d7e-2804-14d-5c59-5ae9-5826-9ebc-92a5-5873.sa.ngrok.io/notificacao"
         ],
         "charges": [
             {
@@ -309,7 +307,7 @@ def pagseguro():
         # inserir id_ordem na tabela de pagamentos
         conecta_db()
         sel_pg(conn)
-        insere_pg(conn, numero_pedido, tipo_pg, status, current_date, current_time, next_date, name, emailpg)
+        insere_pg(conn, numero_pedido, tipo_pg, status, current_date, current_time, name, emailpg)
         cur = conn.cursor()
         cur.execute('UPDATE pagamentos SET id_order = %s WHERE referencia = %s', (id_order, referencia))
         conn.commit()
@@ -328,11 +326,8 @@ def pix():
     url = f"{urlpix}"
     emailpg = request.form['epix']
     tipo_pg = "1"
-    status = "1"
+    status = "0"
     name =""
-    conecta_db()
-    sel_pg(conn)
-    insere_pg(conn, numero_pedido, tipo_pg,status, current_date,current_time,next_date,name,emailpg)
 
     headers = {
         "Content-Type": "application/json",
@@ -376,15 +371,27 @@ def pix():
             }
         },
         "notification_urls": [
-            "https://numerologia.up.railway.app/notificacao"
+            "https://numerologia.up.railway.app/notificacao.html"
         ]
     }
-    desconecta_db(conn)
 
     response = requests.post(url, headers=headers, json=payload)
     if response.ok:
-        data = response.json()
-        href = data['links'][0]['href']
+
+        json_response = response.json()
+        id_order = json_response['id']
+        referencia = json_response['reference_id']
+        id_order = id_order.replace("ORDE_", "")
+
+        # inserir id_ordem na tabela de pagamentos
+        conecta_db()
+        sel_pg(conn)
+        insere_pg(conn, numero_pedido, tipo_pg, status, current_date, current_time, name, emailpg)
+        cur = conn.cursor()
+        cur.execute('UPDATE pagamentos SET id_order = %s, data_exp = %s WHERE referencia = %s', (id_order, limite_d_pix, referencia))
+        conn.commit()
+        desconecta_db(conn)
+        href = json_response['links'][0]['href']
         return render_template('pagamento.html', href=href)
     else:
         return "Erro ao processar a solicitação."
@@ -393,47 +400,48 @@ def pix():
 
 @app.route('/notificacao', methods=['POST'])
 def notificacao():
+    current_time, current_date, _, _, _ = data_pedido()
     recjson = json.loads(request.data)
     id_order = recjson["id"]
+    id_order = id_order.replace("ORDE_", "")
+    referencia = recjson["reference_id"]
     status = recjson["charges"][0]["status"]
+    data_modificacao = current_date
+    hora_mod = current_time
+    id_pg = recjson["charges"][0]["id"]
+    id_pg = id_pg.replace("CHAR_", "")
+    data_pg = recjson["charges"][0]["paid_at"]
+    hora_pg = data_pg.split('T')[1].split('-')[0]
+    hora_pg = hora_pg[:8]
+    cod_pg = recjson["charges"][0]["payment_response"]["code"]
+    msg_pg = recjson["charges"][0]["payment_response"]["message"]
+    ref_pg = recjson["charges"][0]["payment_response"]["reference"]
+    bandeira = recjson["charges"][0]["payment_method"]["card"]["brand"]
+    final_cartao = recjson["charges"][0]["payment_method"]["card"]["last_digits"]
+    qrcode = recjson["qr_code"][0]["id"]
+    qrcode = qrcode.replace("QRCO_", "")
+
     conecta_db()
     sel_pg(conn)
-
-    if status == "AUTHORIZED":
-        status = "1"
+    t_pg = recjson["charges"][0]["payment_method"]["type"]
+    if t_pg == "CREDIT_CARD":
         cur = conn.cursor()
-        cur.execute('UPDATE pagamentos SET status = %s WHERE id_order = %s', (status, id_order))
-        conn.commit()
-        desconecta_db(conn)
-
-    elif status == "PAID":
-        status = "2"
+        cur.execute('UPDATE pagamentos SET status = %s, data_modificacao = %s, hora_mod = %s, id_pg = %s, data_pg = %s, '
+                    'hora_pg = %s, cod_pg = %s, msg_pg = %s, ref_pg = %s, bandeira = %s, final_cartao = %s WHERE id_order = %s '
+                    'AND referencia = %s',
+                    (status, data_modificacao, hora_mod, id_pg, data_pg, hora_pg, cod_pg, msg_pg, ref_pg, bandeira,
+                     final_cartao, id_order, referencia))
+    else:
         cur = conn.cursor()
-        cur.execute('UPDATE pagamentos SET status = %s WHERE id_order = %s', (status, id_order))
-        conn.commit()
-        desconecta_db(conn)
-        return 200
+        cur.execute('UPDATE pagamentos SET status = %s, data_modificacao = %s, hora_mod = %s, id_pg = %s, data_pg = %s,'
+                    ' hora_pg = %s, cod_pg = %s, msg_pg = %s,ref_pg = %s, qrcode = %s WHERE id_order = %s AND'
+                    ' referencia = %s',
+                    (status, data_modificacao, hora_mod, id_pg, data_pg, hora_pg, cod_pg, msg_pg, ref_pg, qrcode,
+                     id_order, referencia))
 
-    elif status == "IN_ANALYSIS":
-        status = "3"
-        cur = conn.cursor()
-        cur.execute('UPDATE pagamentos SET status = %s WHERE id_order = %s', (status, id_order))
-        conn.commit()
-        desconecta_db(conn)
-
-    elif status == "DECLINED":
-        status = "4"
-        cur = conn.cursor()
-        cur.execute('UPDATE pagamentos SET status = %s WHERE id_order = %s', (status, id_order))
-        conn.commit()
-        desconecta_db(conn)
-
-    elif status == "CANCELED":
-        status = "5"
-        cur = conn.cursor()
-        cur.execute('UPDATE pagamentos SET status = %s WHERE id_order = %s', (status, id_order))
-        conn.commit()
-        desconecta_db(conn)
+    conn.commit()
+    desconecta_db(conn)
+    return "OK", 200
 
 @app.route('/resultado')
 def resultado():
@@ -469,10 +477,11 @@ def sel_pg(conn):
     return rows
 
 # Inserindo dados de pagamento na tabela do DB
-def insere_pg(conn, numero_pedido,tipo_pg,status ,current_date,current_time,next_date,name,emailpg):
+def insere_pg(conn, numero_pedido,tipo_pg,status ,current_date,current_time,name,emailpg):
     cur = conn.cursor()
-    cur.execute("INSERT INTO pagamentos (referencia,tipo_pg,status,data_compra,hora_compra,data_modificacao,data_exp, nome, email) "
-                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)", (numero_pedido,tipo_pg,status,current_date,current_time,current_date,next_date,name,emailpg))
+    cur.execute("INSERT INTO pagamentos (referencia,tipo_pg,status,data_compra,hora_compra,data_modificacao,hora_mod, nome, email) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)", (numero_pedido,tipo_pg,status,current_date,current_time,current_date,
+                                                     current_time, name,emailpg))
 
     conn.commit()
 
